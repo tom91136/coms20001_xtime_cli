@@ -1,6 +1,6 @@
 # coms20001_xtime_cli
 
-Instructions for how to setup xTIMEcomposer's build chain without using the built-in IDE
+Instructions for how to setup xTIMEcomposer's toolchain without using the built-in IDE
 
 Tested on:
 
@@ -85,3 +85,43 @@ Should work just fine on any *nix systems.
     pushd ~/xTIMEcomposer/Community_14.3.2/; source ./SetEnv;  popd
     ```
     Place the script in your project root and run `source ./the_script.sh` before using `xmake`; add this to your `.bashrc` or `.zshrc` if you feel like XC is the next big thing /s.
+
+# Running your project
+
+After xmake successfully builds your project, you want to run it with `xsim`(`xsim`, along with `xmake` should both be in your PATH if you have your environment setup correctly). The compiled binary will be located in `<project_root>/bin/<project_name>.xe`. 
+
+To run the binary:
+
+```bash
+tom@kurobako  ~/coms20001_cw1/game_of_life   master xsim bin/game_of_life.xe 
+ProcessImage: Start, size = 16x16
+DataInStream: Start...
+DataOutStream: Start...
+Waiting for Board Tilt...
+# .....
+```
+
+You may want to add some flags:
+
+    --warn-resources --warn-links --warn-stack --warn-registers --stats
+
+The `--stats` flags is especially useful at gaging link(channel) usages.
+
+
+# Tips
+
+You may want to add the `-report` flag to your `Makefile` so that `xcc` can tell you more. In your `Makefile`, find the definition of `XCC_FLAGS` and append the flag, for example: `XCC_FLAGS = -report`
+
+The output(near the end) should now look something like this:
+
+    Creating game_of_life.xe
+    Constraint check for tile[0]:
+      Cores available:            8,   used:          4 .  OKAY
+      Timers available:          10,   used:          4 .  OKAY
+      Chanends available:        32,   used:          6 .  OKAY
+      Memory available:       262144,   used:      56436 .  OKAY
+        (Stack: 5996, Code: 47452, Data: 2988)
+    Constraints checks PASSED.
+    Build Complete
+
+This information is very useful for debugging.
