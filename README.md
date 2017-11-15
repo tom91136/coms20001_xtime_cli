@@ -4,7 +4,7 @@ Instructions for how to setup xTIMEcomposer's toolchain without using the built-
 
 Tested on:
 
- * Fedora 26 x64
+ * Fedora 26 x64 on both X11 and Wayland
 
 Should work just fine on any *nix systems.
 
@@ -106,6 +106,71 @@ You may want to add some flags:
     --warn-resources --warn-links --warn-stack --warn-registers --stats
 
 The `--stats` flags is especially useful at gaging link(channel) usages.
+
+# FAQ
+
+`xrun -l` says the following:
+
+```
+# xrun -l
+ERROR: Device permissions for product 0x20b1 0xf7d4 are not set correctly
+       Please add the correct usb device rules to allow user space access
+
+Available XMOS Devices            
+----------------------            
+
+  No Available Devices Found      
+
+```
+1. Verify XMOS board is connected and visible: 
+    
+    ```
+    # lsusb                                                  
+    Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+    Bus 001 Device 017: ID 20b1:f7d4 XMOS Ltd
+    Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+    ...
+    ```
+    
+2. Check permission for the device:
+
+    ```
+    # ls /dev/bus/usb/001 -lah # replace 001 with the bus id from lsusb
+    total 0                                                        
+    drwxr-xr-x. 2 root root     200 Nov 14 04:13 .                 
+    drwxr-xr-x. 6 root root     120 Nov 14 02:56 ..                
+    crw-rw-r--. 1 root root 189, 18 Nov 14 04:13 017              
+    ...
+    ```
+    In this case, `017` (the device id from lsusb) is our XMOS board of which is owned by root.
+
+3. Add the current user as owner of the XMOS board:
+
+    ```
+    # cat  /etc/udev/rules.d/92-xmos-x200.rules    
+    SUBSYSTEM=="usb", ATTR{idVendor}=="20b1", ATTR{idProduct}=="f7d4", ACTION=="add", OWNER="<name>", MODE="0664"
+    ```
+    The file `92-xmos-x200.rules` will not exist so you will have to create it manually. The name of the file is not critical, the number describes the order of which the rule will be applied, the rest are for descriptive purposes.
+    Replace `<name>` with your user name.
+
+4. Reload udev rules:
+
+    ```
+    # sudo udevadm control --reload-rules && udevadm trigger
+    ```
+    Disconnect and reconnect the device, verify that permission of the again:
+
+    ```
+    # ls /dev/bus/usb/001 -lah # replace 001 with the bus id from lsusb
+    total 0                                                        
+    drwxr-xr-x. 2 root   root     200 Nov 14 04:13 .                 
+    drwxr-xr-x. 6 root   root     120 Nov 14 02:56 ..                
+    crw-rw-r--. 1 <name> root 189, 18 Nov 14 04:14 019              
+    ...
+    ```
+    The owner of the device should be `<user>`, running `xrun -l` should now see the board.
+    Notice that the device id may change, if unclear, always check with output of `lsusb` first.
+
 
 
 # Tips
